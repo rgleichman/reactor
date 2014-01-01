@@ -2,6 +2,7 @@
 #include <CapacitiveSensor.h>
 
 #define PIN 6
+#define num_bulbs 24
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
@@ -10,16 +11,17 @@
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(24, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 4;
+int mode = 5;
 int prev_touch = 0;
-int num_modes = 5;
+int num_modes = 7;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
 uint32_t yellow = strip.Color(255, 150, 0);
+uint32_t blue = strip.Color(0, 0, 255);
 uint32_t no_color = strip.Color(0, 0, 0);
 //array with the indecies of the lights that will be yellow. Each row is a USB group.
 #define yellow_bulb_rows 3
@@ -27,15 +29,20 @@ uint32_t no_color = strip.Color(0, 0, 0);
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2    }
+    22, 23, 0, 1, 2        }
   ,
   {
-    6, 7, 8, 9, 10  }
+    6, 7, 8, 9, 10      }
   ,
   {
-    14, 15, 16, 17, 18  }
+    14, 15, 16, 17, 18      }
 };
 int bulb_row = 0;
+//battery_status 0 = empty, 239 = full
+#define max_bat 239
+//battery_status 0 = empty, 239 = full
+int battery_status = 0;
+int loop_num = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -60,6 +67,7 @@ void loop() {
   if(touch && !prev_touch){
     mode = (mode + 1) % num_modes;
   }
+  strip.setBrightness(255);
   if(mode == 0){    
     rainbowCycle(10);
     j = (j+1) % 256;
@@ -89,12 +97,34 @@ void loop() {
     }
     strip.setBrightness(abs(bright_mult-100)+20);
     bright_mult = (bright_mult + 1) % 200;
-    if (bright_mult == 0){
-      bulb_row = (bulb_row + 1) % 3;
+    //    if (bright_mult == 0){
+    //      bulb_row = (bulb_row + 1) % 3;
+    //    }
+  }
+  if(mode == 5){
+    setOneColor(no_color);
+    for(int bulb = 0; bulb <= battery_status * num_bulbs / (max_bat + 1); bulb++){
+      //strip.setPixelColor(bulb, 255 - battery_status * 255 / max_bat, battery_status * 255 / max_bat, 0);
+      int red_color = 255 - (3*battery_status/2) * 255 / max_bat;
+      if(red_color < 20) red_color = 20;
+      int green_color = (3*battery_status/2) * 255 / max_bat;
+      if (green_color >  200) green_color=200;
+      strip.setPixelColor(bulb, red_color, green_color, 0);
+    }
+    if(loop_num % 2 == 0){
+      battery_status = (battery_status + 1) % (max_bat + 1);
+    }
+  }
+  if(mode == 6){
+    battery_status = max_bat * 2 / 3;
+    setOneColor(no_color);
+    for(int bulb = 0; bulb <= battery_status * num_bulbs / (max_bat + 1); bulb++){
+      //strip.setPixelColor(bulb, min(0, 255 - 3 * battery_status * 255 / (2*max_bat), 3* battery_status * 255 / (2*max_bat), 0);
     }
   }
   strip.show();
   prev_touch = touch;
+  loop_num= loop_num + 1 %1000;
 }
 
 void setOneColor(uint32_t c){
@@ -188,6 +218,8 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
 
 
 
