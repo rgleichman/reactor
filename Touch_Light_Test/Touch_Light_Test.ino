@@ -20,11 +20,22 @@ int num_modes = 5;
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
 uint32_t yellow = strip.Color(255, 150, 0);
+uint32_t no_color = strip.Color(0, 0, 0);
 //array with the indecies of the lights that will be yellow. Each row is a USB group.
-int yellow_bulbs[1][5] = 
+#define yellow_bulb_rows 3
+#define yellow_bulb_cols 5
+int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
-  {22, 23, 0, 1, 2}
+  {
+    22, 23, 0, 1, 2    }
+  ,
+  {
+    6, 7, 8, 9, 10  }
+  ,
+  {
+    14, 15, 16, 17, 18  }
 };
+int bulb_row = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -69,14 +80,27 @@ void loop() {
     }
   }
   if(mode == 4){
-    for(int i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, yellow);
+    //    for(int i=0; i<strip.numPixels(); i++) {
+    //      strip.setPixelColor(i, yellow);
+    //    }
+    setOneColor(no_color);
+    for(int col = 0; col < yellow_bulb_cols; col++){
+      strip.setPixelColor(yellow_bulbs[bulb_row][col], yellow);
     }
     strip.setBrightness(abs(bright_mult-100)+20);
     bright_mult = (bright_mult + 1) % 200;
+    if (bright_mult == 0){
+      bulb_row = (bulb_row + 1) % 3;
+    }
   }
   strip.show();
   prev_touch = touch;
+}
+
+void setOneColor(uint32_t c){
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+  }
 }
 
 // Fill the dots one after the other with a color
@@ -164,6 +188,8 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
 
 
 
