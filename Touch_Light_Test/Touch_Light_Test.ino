@@ -14,14 +14,16 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 5;
+int mode = 7;
 int prev_touch = 0;
-int num_modes = 7;
+int num_modes = 9;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
 uint32_t yellow = strip.Color(255, 150, 0);
 uint32_t blue = strip.Color(0, 0, 255);
+uint32_t green = strip.Color(0, 255, 0);
+uint32_t red = strip.Color(255, 0, 0);
 uint32_t no_color = strip.Color(0, 0, 0);
 //array with the indecies of the lights that will be yellow. Each row is a USB group.
 #define yellow_bulb_rows 3
@@ -29,20 +31,24 @@ uint32_t no_color = strip.Color(0, 0, 0);
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2        }
+    22, 23, 0, 1, 2                }
   ,
   {
-    6, 7, 8, 9, 10      }
+    6, 7, 8, 9, 10              }
   ,
   {
-    14, 15, 16, 17, 18      }
+    14, 15, 16, 17, 18              }
 };
 int bulb_row = 0;
-//battery_status 0 = empty, 239 = full
+//bat_indicator 0 = empty, 239 = full
 #define max_bat 239
-//battery_status 0 = empty, 239 = full
-int battery_status = 0;
+//bat_indicator 0 = empty, 239 = full
+uint8_t bat_indicator = 0;
+//bat_charge 0 = empty, 239 = full
+uint8_t bat_charge = 160;
 int loop_num = 0;
+//for mode 7
+uint8_t half_light_counter = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -57,24 +63,26 @@ void loop() {
   long total3 =  cs_4_8.capacitiveSensor(30);
   int touch_thresh = 500;
 
-  Serial.print(millis() - start);        // check on performance in milliseconds
-  Serial.print("\t");                    // tab character for debug windown spacing
+  //Serial.print(millis() - start);        // check on performance in milliseconds
+  //Serial.print("\t");                    // tab character for debug windown spacing
 
-  Serial.println(total3);                // print sensor output 3
+  //Serial.println(total3);                // print sensor output 3
 
-    delay(5);                             // arbitrary delay to limit data to serial port 
+  delay(5);                             // arbitrary delay to limit data to serial port 
   int touch = total3 > touch_thresh;
   if(touch && !prev_touch){
     mode = (mode + 1) % num_modes;
   }
   strip.setBrightness(255);
+  setOneColor(no_color);
   if(mode == 0){    
     rainbowCycle(10);
     j = (j+1) % 256;
   }
   if(mode == 1){
     for(int i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, 0, 0, 0);
+      //strip.setPixelColor(i, 0, 0, 0);
+      strip.setPixelColor(i, cyan);
     }
   }
   if(mode == 2){
@@ -103,23 +111,58 @@ void loop() {
   }
   if(mode == 5){
     setOneColor(no_color);
-    for(int bulb = 0; bulb <= battery_status * num_bulbs / (max_bat + 1); bulb++){
-      //strip.setPixelColor(bulb, 255 - battery_status * 255 / max_bat, battery_status * 255 / max_bat, 0);
-      int red_color = 255 - (3*battery_status/2) * 255 / max_bat;
-      if(red_color < 20) red_color = 20;
-      int green_color = (3*battery_status/2) * 255 / max_bat;
-      if (green_color >  200) green_color=200;
-      strip.setPixelColor(bulb, red_color, green_color, 0);
+    for(int bulb = 0; bulb <= bat_indicator * num_bulbs / (max_bat + 1); bulb++){
+      //strip.setPixelColor(bulb, 255 - bat_indicator * 255 / max_bat, bat_indicator * 255 / max_bat, 0);
+      uint8_t red_color = 255 - (3*bat_indicator/2) * 255 / max_bat;
+      uint8_t green_color = (3*bat_indicator/2) * 255 / max_bat;
+      if(bat_indicator >= max_bat*2/3){
+        red_color = 0;
+        green_color = 255;
+      }
+      if(bulb + 1 > bat_indicator * num_bulbs / (max_bat + 1)){
+        //This applies to the newest bulb to turn on
+        uint8_t brightness = ((bat_indicator * num_bulbs) % (max_bat + 1)) / 10;
+        uint8_t red_brightness = brightness*red_color / 25;
+        uint8_t green_over =  green_color / 25;
+        uint8_t green_brightness =  brightness*green_over;
+        strip.setPixelColor(bulb, red_brightness, green_brightness, 0);
+      }
+      else{
+        strip.setPixelColor(bulb, red_color, green_color, 0);
+      }
     }
     if(loop_num % 2 == 0){
-      battery_status = (battery_status + 1) % (max_bat + 1);
+      bat_indicator = (bat_indicator + 1) % (max_bat + 1);
+    }
+    if(bat_indicator > bat_charge){
+      bat_indicator = 0;
     }
   }
   if(mode == 6){
-    battery_status = max_bat * 2 / 3;
+    bat_indicator = max_bat * 2 / 3;
     setOneColor(no_color);
-    for(int bulb = 0; bulb <= battery_status * num_bulbs / (max_bat + 1); bulb++){
-      //strip.setPixelColor(bulb, min(0, 255 - 3 * battery_status * 255 / (2*max_bat), 3* battery_status * 255 / (2*max_bat), 0);
+    for(int bulb = 0; bulb <= 2* num_bulbs / 3; bulb++){
+      strip.setPixelColor(bulb, green);
+    }
+  }
+  if(mode == 7){
+    strip.setPixelColor((half_light_counter + num_bulbs / 2)%num_bulbs, blue);
+    strip.setPixelColor((24 - half_light_counter + num_bulbs / 2) % num_bulbs, blue);
+    if(loop_num % 8 == 0){
+      half_light_counter = (half_light_counter + 1) % (num_bulbs / 2  + 1);
+    }
+  }
+  if(mode == 8){
+    uint16_t flash_frequency = 200;
+      //police lights
+    uint8_t flash_num = loop_num % flash_frequency;
+    if(flash_num % (flash_frequency / 8) > flash_frequency / 16){
+      if(flash_num < flash_frequency / 2 && flash_num > flash_frequency / 8){
+        setOneColor(blue);
+      }
+      else if(flash_num > flash_frequency * 5 / 8){
+        setOneColor(red);
+      }
     }
   }
   strip.show();
@@ -218,6 +261,10 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
+
+
 
 
 
