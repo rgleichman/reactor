@@ -33,13 +33,13 @@ uint32_t mode_9_count = 0;
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                  }
+    22, 23, 0, 1, 2                        }
   ,
   {
-    6, 7, 8, 9, 10                }
+    6, 7, 8, 9, 10                      }
   ,
   {
-    14, 15, 16, 17, 18                }
+    14, 15, 16, 17, 18                      }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -173,15 +173,24 @@ void loop() {
   }
   if(mode == 9){
     for(uint32_t bulb = 0; bulb < 5; bulb++){
-      strip.setPixelColor((bulb + mode_9_count) % num_bulbs, white);
+      //last bulb, so decrease intensity
+      uint8_t decreased_white = 249 - moving_bright;
+      if(bulb == 0){
+        strip.setPixelColor((bulb + mode_9_count) % num_bulbs,decreased_white, decreased_white, decreased_white);
+      }
+      else if(bulb == 4){
+        // first bulb, so increase intensity
+        strip.setPixelColor((bulb + mode_9_count) % num_bulbs, moving_bright, moving_bright, moving_bright);
+      }
+      else{
+        strip.setPixelColor((bulb + mode_9_count) % num_bulbs, white);
+
+      }
     }
-    if(loop_num % 10 == 0){
+    if(moving_bright >= 250 - 20){
       mode_9_count = (mode_9_count + 1) % num_bulbs;
     }
-    //if(moving_bright >= 250 - 20){
-    //  half_light_counter = (half_light_counter + 1) % (num_bulbs / 2);
-    //}
-    //moving_bright = (moving_bright + 20) % 250;
+    moving_bright = (moving_bright + 20) % 250;
   }
   strip.show();
   prev_touch = touch;
@@ -279,6 +288,9 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
+
 
 
 
