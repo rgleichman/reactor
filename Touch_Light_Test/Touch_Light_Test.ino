@@ -31,13 +31,13 @@ uint32_t no_color = strip.Color(0, 0, 0);
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                }
+    22, 23, 0, 1, 2                  }
   ,
   {
-    6, 7, 8, 9, 10              }
+    6, 7, 8, 9, 10                }
   ,
   {
-    14, 15, 16, 17, 18              }
+    14, 15, 16, 17, 18                }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -49,6 +49,7 @@ uint8_t bat_charge = 160;
 int loop_num = 0;
 //for mode 7
 uint8_t half_light_counter = 0;
+uint8_t moving_bright = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -146,15 +147,18 @@ void loop() {
     }
   }
   if(mode == 7){
-    strip.setPixelColor((half_light_counter + num_bulbs / 2)%num_bulbs, blue);
-    strip.setPixelColor((24 - half_light_counter + num_bulbs / 2) % num_bulbs, blue);
-    if(loop_num % 8 == 0){
-      half_light_counter = (half_light_counter + 1) % (num_bulbs / 2  + 1);
+    strip.setPixelColor((half_light_counter + num_bulbs / 2 ) % num_bulbs, 0, 0, 249-moving_bright);
+    strip.setPixelColor((24 - half_light_counter + num_bulbs / 2) % num_bulbs, 0, 0, 249-moving_bright);
+    strip.setPixelColor((half_light_counter + num_bulbs / 2 + 1)%num_bulbs, 0, 0, moving_bright);
+    strip.setPixelColor((24 - half_light_counter + num_bulbs / 2 - 1) % num_bulbs, 0, 0, moving_bright);
+    if(moving_bright >= 250 - 10){
+      half_light_counter = (half_light_counter + 1) % (num_bulbs / 2);
     }
+    moving_bright = (moving_bright + 10) % 250;
   }
   if(mode == 8){
     uint16_t flash_frequency = 200;
-      //police lights
+    //police lights
     uint8_t flash_num = loop_num % flash_frequency;
     if(flash_num % (flash_frequency / 8) > flash_frequency / 16){
       if(flash_num < flash_frequency / 2 && flash_num > flash_frequency / 8){
@@ -261,6 +265,7 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
 
 
 
