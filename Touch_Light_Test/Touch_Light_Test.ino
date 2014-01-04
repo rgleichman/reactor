@@ -14,9 +14,9 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 7;
+int mode = 9;
 int prev_touch = 0;
-int num_modes = 9;
+int num_modes = 10;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
@@ -25,6 +25,8 @@ uint32_t blue = strip.Color(0, 0, 255);
 uint32_t green = strip.Color(0, 255, 0);
 uint32_t red = strip.Color(255, 0, 0);
 uint32_t no_color = strip.Color(0, 0, 0);
+uint32_t white = strip.Color(255, 255, 255);
+uint32_t mode_9_count = 0;
 //array with the indecies of the lights that will be yellow. Each row is a USB group.
 #define yellow_bulb_rows 3
 #define yellow_bulb_cols 5
@@ -151,10 +153,10 @@ void loop() {
     strip.setPixelColor((24 - half_light_counter + num_bulbs / 2) % num_bulbs, 0, 0, 249-moving_bright);
     strip.setPixelColor((half_light_counter + num_bulbs / 2 + 1)%num_bulbs, 0, 0, moving_bright);
     strip.setPixelColor((24 - half_light_counter + num_bulbs / 2 - 1) % num_bulbs, 0, 0, moving_bright);
-    if(moving_bright >= 250 - 10){
+    if(moving_bright >= 250 - 20){
       half_light_counter = (half_light_counter + 1) % (num_bulbs / 2);
     }
-    moving_bright = (moving_bright + 10) % 250;
+    moving_bright = (moving_bright + 20) % 250;
   }
   if(mode == 8){
     uint16_t flash_frequency = 200;
@@ -168,6 +170,18 @@ void loop() {
         setOneColor(red);
       }
     }
+  }
+  if(mode == 9){
+    for(uint32_t bulb = 0; bulb < 5; bulb++){
+      strip.setPixelColor((bulb + mode_9_count) % num_bulbs, white);
+    }
+    if(loop_num % 10 == 0){
+      mode_9_count = (mode_9_count + 1) % num_bulbs;
+    }
+    //if(moving_bright >= 250 - 20){
+    //  half_light_counter = (half_light_counter + 1) % (num_bulbs / 2);
+    //}
+    //moving_bright = (moving_bright + 20) % 250;
   }
   strip.show();
   prev_touch = touch;
