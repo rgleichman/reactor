@@ -16,7 +16,7 @@ CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor betwee
 uint16_t j;
 int mode = 10;
 int prev_touch = 0;
-int num_modes = 14;
+int num_modes = 16;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
@@ -210,10 +210,16 @@ void loop() {
     butterfly(255, 200, 0);
   }
   if(mode == 12){
-    butterfly(0, 255, 0);
+    butterfly(255, 100, 0);
   }
   if(mode == 13){
     butterfly(0, 255, 255);
+  }
+   if(mode == 14){
+    butterfly(0, 255, 100);
+  }
+    if(mode == 15){
+    butterfly(0, 100, 255);
   }
   strip.show();
   prev_touch = touch;
