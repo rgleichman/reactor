@@ -14,7 +14,7 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 10;
+int mode = 3;
 int prev_touch = 0;
 int num_modes = 16;
 //bright_mult is from 0 to 255
@@ -47,7 +47,7 @@ int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
 uint8_t bat_indicator = 0;
 //bat_charge 0 = empty, 239 = full
-uint8_t bat_charge = 160;
+uint8_t bat_charge = 119;
 int loop_num = 0;
 //for mode 7
 int16_t half_light_counter = 0;
@@ -94,13 +94,8 @@ void loop() {
       strip.setPixelColor(i, 255, 255, 255);
     }
   }
-  if(mode == 3){
-    for(int i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, 0, 0, 0);
-    }
-  }
-  if(mode == 4){
-    //    for(int i=0; i<strip.numPixels(); i++) {
+  if(mode == 3){    
+        //    for(int i=0; i<strip.numPixels(); i++) {
     //      strip.setPixelColor(i, yellow);
     //    }
     setOneColor(no_color);
@@ -109,11 +104,12 @@ void loop() {
     }
     strip.setBrightness(abs(bright_mult-100)+20);
     bright_mult = (bright_mult + 1) % 200;
-    //    if (bright_mult == 0){
-    //      bulb_row = (bulb_row + 1) % 3;
-    //    }
+  }
+  if(mode == 4){
+    setOneColor(no_color);
   }
   if(mode == 5){
+    //battery indicator
     setOneColor(no_color);
     for(int bulb = 0; bulb <= bat_indicator * num_bulbs / (max_bat + 1); bulb++){
       //strip.setPixelColor(bulb, 255 - bat_indicator * 255 / max_bat, bat_indicator * 255 / max_bat, 0);
@@ -135,12 +131,15 @@ void loop() {
         strip.setPixelColor(bulb, red_color, green_color, 0);
       }
     }
-    if(loop_num % 2 == 0){
+    if(loop_num % 2 == 0 && bat_indicator < bat_charge){
       bat_indicator = (bat_indicator + 1) % (max_bat + 1);
     }
-    if(bat_indicator > bat_charge){
-      bat_indicator = 0;
-    }
+    //if(bat_indicator > bat_charge){
+    //  bat_indicator = 0;
+    //}
+  }
+  if(mode != 5){
+    bat_indicator = 0;
   }
   if(mode == 6){
     bat_indicator = max_bat * 2 / 3;
