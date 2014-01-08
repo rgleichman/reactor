@@ -146,26 +146,7 @@ void loop() {
       strip.setPixelColor(bulb, green);
     }
   }
-  if(mode == 7){
-    //butterfly(0, 0, 255);
-    uint8_t bright_increase = 15;
-    if(half_light_counter > 0){
-      strip.setPixelColor((half_light_counter - 1 + num_bulbs / 2 ) % num_bulbs, 0, 0, 249-moving_bright);
-      strip.setPixelColor((24 - (half_light_counter - 1) + num_bulbs / 2) % num_bulbs, 0, 0, 249-moving_bright);
-    }
-    if(half_light_counter < num_bulbs / 2 + 1){
-      strip.setPixelColor(((half_light_counter - 1) + num_bulbs / 2 + 1)%num_bulbs, 0, 0, moving_bright);
-      strip.setPixelColor((24 - (half_light_counter - 1) + num_bulbs / 2 - 1) % num_bulbs, 0, 0, moving_bright);
-    }
-    if(moving_bright >= 250 - bright_increase){
-      half_light_counter = (half_light_counter + 1) % (num_bulbs / 2 + 2);
-      if(half_light_counter == 0){
-        starting = true;
-      }
-    }
-    moving_bright = (moving_bright + bright_increase) % 250;
 
-  }
   if(mode == 8){
     uint16_t flash_frequency = 200;
     //police lights
@@ -180,6 +161,7 @@ void loop() {
     }
   }
   if(mode == 9){
+    uint8_t bright_increase = 20;
     for(uint32_t bulb = 0; bulb < 5; bulb++){
       //last bulb, so decrease intensity
       uint8_t decreased_white = 249 - moving_bright;
@@ -195,10 +177,10 @@ void loop() {
 
       }
     }
-    if(moving_bright >= 250 - 20){
+    if(moving_bright >= 250 - bright_increase){
       mode_9_count = (mode_9_count + 1) % num_bulbs;
     }
-    moving_bright = (moving_bright + 20) % 250;
+    moving_bright = (moving_bright + bright_increase) % 250;
   }
   if(mode == 10){
     butterfly(0, 255, 0);
