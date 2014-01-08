@@ -14,7 +14,7 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 3;
+int mode = 0;
 int prev_touch = 0;
 int num_modes = 16;
 //bright_mult is from 0 to 255
@@ -33,13 +33,13 @@ uint32_t mode_9_count = 0;
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                                    }
+    22, 23, 0, 1, 2                                      }
   ,
   {
-    6, 7, 8, 9, 10                                  }
+    6, 7, 8, 9, 10                                    }
   ,
   {
-    14, 15, 16, 17, 18                                  }
+    14, 15, 16, 17, 18                                    }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -84,10 +84,8 @@ void loop() {
     j = (j+1) % 256;
   }
   if(mode == 1){
-    for(int i=0; i<strip.numPixels(); i++) {
-      //strip.setPixelColor(i, 0, 0, 0);
-      strip.setPixelColor(i, cyan);
-    }
+    //mode 1 is doing to do nothing cool 
+    setOneColor(no_color);   
   }
   if(mode == 2){
     for(int i=0; i<strip.numPixels(); i++) {
@@ -95,7 +93,7 @@ void loop() {
     }
   }
   if(mode == 3){    
-        //    for(int i=0; i<strip.numPixels(); i++) {
+    //    for(int i=0; i<strip.numPixels(); i++) {
     //      strip.setPixelColor(i, yellow);
     //    }
     setOneColor(no_color);
@@ -214,10 +212,10 @@ void loop() {
   if(mode == 13){
     butterfly(0, 255, 255);
   }
-   if(mode == 14){
+  if(mode == 14){
     butterfly(0, 255, 100);
   }
-    if(mode == 15){
+  if(mode == 15){
     butterfly(0, 100, 255);
   }
   strip.show();
@@ -233,7 +231,7 @@ void butterfly(uint8_t red, uint8_t green, uint8_t blue){
   if(half_light_counter > 0){
     strip.setPixelColor((half_light_counter - 1 + num_bulbs / 2 ) % num_bulbs, red - scale_red, 
     green - scale_green, blue- scale_blue);
-    
+
     strip.setPixelColor((24 - (half_light_counter - 1) + num_bulbs / 2) % num_bulbs, red - scale_red, 
     green - scale_green, blue- scale_blue);
   }
@@ -341,6 +339,7 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
 
 
 
