@@ -65,7 +65,7 @@ void setup() {
 void loop() {
   long start = millis();
   long total3 =  cs_4_8.capacitiveSensor(30);
-  int touch_thresh = 500;
+  int touch_thresh = 2000;
 
   //Serial.print(millis() - start);        // check on performance in milliseconds
   //Serial.print("\t");                    // tab character for debug windown spacing
