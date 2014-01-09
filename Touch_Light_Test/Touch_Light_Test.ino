@@ -4,6 +4,15 @@
 #define PIN 6
 #define num_bulbs 24
 
+//typedef struct rgb rgb;
+struct rgb{
+  uint8_t red;
+  uint8_t green;
+  uint8_t blue;
+};
+
+typedef struct rgb Rgb;
+
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -14,9 +23,9 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 0;
+int mode = 13;
 int prev_touch = 0;
-int num_modes = 16;
+int num_modes = 14;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
@@ -27,19 +36,21 @@ uint32_t red = strip.Color(255, 0, 0);
 uint32_t no_color = strip.Color(0, 0, 0);
 uint32_t white = strip.Color(255, 255, 255);
 uint32_t mode_9_count = 0;
+uint8_t but_count;
+boolean but_done = false;
 //array with the indecies of the lights that will be yellow. Each row is a USB group.
 #define yellow_bulb_rows 3
 #define yellow_bulb_cols 5
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                                      }
+    22, 23, 0, 1, 2                                          }
   ,
   {
-    6, 7, 8, 9, 10                                    }
+    6, 7, 8, 9, 10                                        }
   ,
   {
-    14, 15, 16, 17, 18                                    }
+    14, 15, 16, 17, 18                                        }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -52,7 +63,6 @@ int loop_num = 0;
 //for mode 7
 int16_t half_light_counter = 0;
 uint8_t moving_bright = 0;
-boolean starting = true;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -65,14 +75,14 @@ void setup() {
 void loop() {
   long start = millis();
   long total3 =  cs_4_8.capacitiveSensor(30);
-  int touch_thresh = 2000;
+  int touch_thresh = 3000;
 
-  //Serial.print(millis() - start);        // check on performance in milliseconds
-  //Serial.print("\t");                    // tab character for debug windown spacing
+  Serial.print(millis() - start);        // check on performance in milliseconds
+  Serial.print("\t");                    // tab character for debug windown spacing
 
-  //Serial.println(total3);                // print sensor output 3
+  Serial.println(total3);                // print sensor output 3
 
-  delay(5);                             // arbitrary delay to limit data to serial port 
+    delay(5);                             // arbitrary delay to limit data to serial port 
   int touch = total3 > touch_thresh;
   if(touch && !prev_touch){
     mode = (mode + 1) % num_modes;
@@ -186,19 +196,36 @@ void loop() {
     butterfly(0, 255, 0);
   }
   if(mode == 11){
-    butterfly(255, 200, 0);
+    multi_butter(8, 255, 0, 0);
+    multi_butter(0, 0, 255, 0);
+    multi_butter(16, 0, 0, 255);
+    //strip.setPixelColor(0, 0, 0, 100);
   }
   if(mode == 12){
-    butterfly(255, 100, 0);
+    all_butter(8, 255, 0, 0);
+    all_butter(0, 0, 255, 0);
+    all_butter(16, 0, 0, 255);
+    //strip.setPixelColor(0, 0, 0, 100);
+    //addToColor(& strip, 0, 0, 0, 200);
   }
   if(mode == 13){
-    butterfly(0, 255, 255);
-  }
-  if(mode == 14){
-    butterfly(0, 255, 100);
-  }
-  if(mode == 15){
-    butterfly(0, 100, 255);
+    if(but_done){
+      but_done = false;
+      but_count = (but_count + 1) % 3;
+    }
+    switch(but_count){
+    case 0:
+      multi_butter(8, 255, 0, 0);
+      break;
+    case 1:
+      multi_butter(0, 0, 255, 0);
+      break;
+    case 2:
+      multi_butter(16, 0, 0, 255);
+      break;
+    }
+    //strip.setPixelColor(0, 0, 0, 100);
+    //addToColor(& strip, 0, 0, 0, 200);
   }
   strip.show();
   prev_touch = touch;
@@ -223,8 +250,56 @@ void butterfly(uint8_t red, uint8_t green, uint8_t blue){
   }
   if(moving_bright >= 250 - bright_increase){
     half_light_counter = (half_light_counter + 1) % (num_bulbs / 2 + 2);
+  }
+  moving_bright = (moving_bright + bright_increase) % 250;
+}
+void multi_butter(uint8_t start, uint8_t red, uint8_t green, uint8_t blue){
+  uint8_t bright_increase = 30;
+  uint8_t scale_red = moving_bright*red/255;
+  uint8_t scale_green = moving_bright*green/255;
+  uint8_t scale_blue = moving_bright*blue/255;
+  uint8_t offset = half_light_counter;
+  if(half_light_counter > 0){
+    strip.setPixelColor((offset - 1 + num_bulbs / 2 + start) % num_bulbs, red - scale_red, 
+    green - scale_green, blue- scale_blue);
+
+    strip.setPixelColor((24 - (offset - 1) + num_bulbs / 2 + start) % num_bulbs, red - scale_red, 
+    green - scale_green, blue- scale_blue);
+  }
+  if(half_light_counter < num_bulbs / 2 + 1){
+    strip.setPixelColor(((offset - 1) + num_bulbs / 2 + 1 + start) % num_bulbs, scale_red, scale_green, scale_blue);
+    strip.setPixelColor((24 - (offset - 1) + num_bulbs / 2 - 1 + start) % num_bulbs, scale_red, scale_green, scale_blue);
+  }
+  if(moving_bright >= 250 - bright_increase){
+    half_light_counter = (half_light_counter + 1) % (num_bulbs / 2 + 2);
     if(half_light_counter == 0){
-      starting = true;
+      but_done = true;
+    }
+  }
+  moving_bright = (moving_bright + bright_increase) % 250;
+}
+void all_butter(uint8_t start, uint8_t red, uint8_t green, uint8_t blue){
+  uint8_t bright_increase = 15;
+  uint8_t scale_red = moving_bright*red/255;
+  uint8_t scale_green = moving_bright*green/255;
+
+  uint8_t scale_blue = moving_bright*blue/255;
+  uint8_t offset = half_light_counter;
+  if(half_light_counter > 0){
+    addToColor(&strip, (offset - 1 + num_bulbs / 2 + start) % num_bulbs, red - scale_red, 
+    green - scale_green, blue- scale_blue);
+
+    addToColor(&strip, (24 - (offset - 1) + num_bulbs / 2 + start) % num_bulbs, red - scale_red, 
+    green - scale_green, blue- scale_blue);
+  }
+  if(half_light_counter < num_bulbs / 2 + 1){
+    addToColor(&strip, ((offset - 1) + num_bulbs / 2 + 1 + start) % num_bulbs, scale_red, scale_green, scale_blue);
+    addToColor(&strip, (24 - (offset - 1) + num_bulbs / 2 - 1 + start) % num_bulbs, scale_red, scale_green, scale_blue);
+  }
+  if(moving_bright >= 250 - bright_increase){
+    half_light_counter = (half_light_counter + 1) % (num_bulbs / 2 + 2);
+    if(half_light_counter == 0){
+      but_done = true;
     }
   }
   moving_bright = (moving_bright + bright_increase) % 250;
@@ -234,6 +309,24 @@ void setOneColor(uint32_t c){
   for(uint16_t i=0; i<strip.numPixels(); i++) {
     strip.setPixelColor(i, c);
   }
+}
+
+//Gets the individual colors as an array
+//red = [2]
+//green = [1]
+//blue = [0]
+
+void getColors(uint32_t color, struct rgb *rgb_return){
+  uint8_t * colors = (uint8_t *) & color;
+  rgb_return-> red = colors[2];
+  rgb_return -> green = colors[1];
+  rgb_return -> blue = colors[0];
+}
+
+void addToColor(Adafruit_NeoPixel* strip, uint8_t n, uint8_t red, uint8_t green, uint8_t blue){
+  Rgb old_colors;
+  getColors(strip -> getPixelColor(0), & old_colors);
+  strip -> setPixelColor(n, min(255, old_colors.red + red), min(255, old_colors.green + green), min(255, old_colors.blue + blue));
 }
 
 // Fill the dots one after the other with a color
@@ -321,6 +414,8 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
 
 
 
