@@ -23,9 +23,9 @@ typedef struct rgb Rgb;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 14;
+int mode = 0;
 int prev_touch = 0;
-int num_modes = 15;
+int num_modes = 2;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
@@ -44,13 +44,13 @@ boolean but_done = false;
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                                          }
+    22, 23, 0, 1, 2                                              }
   ,
   {
-    6, 7, 8, 9, 10                                        }
+    6, 7, 8, 9, 10                                            }
   ,
   {
-    14, 15, 16, 17, 18                                        }
+    14, 15, 16, 17, 18                                            }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -63,6 +63,7 @@ int loop_num = 0;
 //for mode 7
 int16_t half_light_counter = 0;
 uint8_t moving_bright = 0;
+uint8_t moving_white = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -74,8 +75,9 @@ void setup() {
 
 void loop() {
   long start = millis();
-  long total3 =  cs_4_8.capacitiveSensor(30);
-  int touch_thresh = 1000;
+  long total3 =  cs_4_8.capacitiveSensor(3);
+  int touch_thresh = 50;
+  int plug_in_thresh = 300;
 
   Serial.print(millis() - start);        // check on performance in milliseconds
   Serial.print("\t");                    // tab character for debug windown spacing
@@ -84,150 +86,55 @@ void loop() {
 
     delay(5);                             // arbitrary delay to limit data to serial port 
   int touch = total3 > touch_thresh;
-  if(touch && !prev_touch){
-    mode = (mode + 1) % num_modes;
+  if(total3 > plug_in_thresh){
+    mode = 1;
+  }
+  else{
+    mode = 0;
+
   }
   strip.setBrightness(255);
   setOneColor(no_color);
-  if(mode == 0){    
-    rainbowCycle(10);
-    j = (j+1) % 256;
-  }
-  if(mode == 1){
-    //mode 1 is doing to do nothing cool 
-    setOneColor(no_color);   
-  }
-  if(mode == 2){
-    for(int i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, 255, 255, 255);
-    }
-  }
-  if(mode == 3){    
-    //    for(int i=0; i<strip.numPixels(); i++) {
-    //      strip.setPixelColor(i, yellow);
-    //    }
-    setOneColor(no_color);
-    for(int col = 0; col < yellow_bulb_cols; col++){
-      strip.setPixelColor(yellow_bulbs[bulb_row][col], yellow);
-    }
-    strip.setBrightness(abs(bright_mult-100)+20);
-    bright_mult = (bright_mult + 1) % 200;
-  }
-  if(mode == 4){
-    setOneColor(no_color);
-  }
-  if(mode == 5){
-    //battery indicator
-    setOneColor(no_color);
-    for(int bulb = 0; bulb <= bat_indicator * num_bulbs / (max_bat + 1); bulb++){
-      //strip.setPixelColor(bulb, 255 - bat_indicator * 255 / max_bat, bat_indicator * 255 / max_bat, 0);
-      uint8_t red_color = 255 - (3*bat_indicator/2) * 255 / max_bat;
-      uint8_t green_color = (3*bat_indicator/2) * 255 / max_bat;
-      if(bat_indicator >= max_bat*2/3){
-        red_color = 0;
-        green_color = 255;
-      }
-      if(bulb + 1 > bat_indicator * num_bulbs / (max_bat + 1)){
-        //This applies to the newest bulb to turn on
-        uint8_t brightness = ((bat_indicator * num_bulbs) % (max_bat + 1)) / 10;
-        uint8_t red_brightness = brightness*red_color / 25;
-        uint8_t green_over =  green_color / 25;
-        uint8_t green_brightness =  brightness*green_over;
-        strip.setPixelColor(bulb, red_brightness, green_brightness, 0);
-      }
-      else{
-        strip.setPixelColor(bulb, red_color, green_color, 0);
-      }
-    }
-    if(loop_num % 2 == 0 && bat_indicator < bat_charge){
-      bat_indicator = (bat_indicator + 1) % (max_bat + 1);
-    }
-    //if(bat_indicator > bat_charge){
-    //  bat_indicator = 0;
-    //}
-  }
-  if(mode != 5){
-    bat_indicator = 0;
-  }
-  if(mode == 6){
-    bat_indicator = max_bat * 2 / 3;
-    setOneColor(no_color);
-    for(int bulb = 0; bulb <= 2* num_bulbs / 3; bulb++){
-      strip.setPixelColor(bulb, green);
-    }
-  }
-
-  if(mode == 8){
-    uint16_t flash_frequency = 200;
-    //police lights
-    uint8_t flash_num = loop_num % flash_frequency;
-    if(flash_num % (flash_frequency / 8) > flash_frequency / 16){
-      if(flash_num < flash_frequency / 2 && flash_num > flash_frequency / 8){
-        setOneColor(blue);
-      }
-      else if(flash_num > flash_frequency * 5 / 8){
-        setOneColor(red);
-      }
-    }
-  }
-  if(mode == 9){
+  if(mode == 0){
+    moving_bright = 0;
+    half_light_counter = 0;
     uint8_t bright_increase = 20;
     for(uint32_t bulb = 0; bulb < 5; bulb++){
       //last bulb, so decrease intensity
-      uint8_t decreased_white = 249 - moving_bright;
+      uint8_t decreased_white = 249 - moving_white;
       if(bulb == 0){
         strip.setPixelColor((bulb + mode_9_count) % num_bulbs,decreased_white, decreased_white, decreased_white);
       }
       else if(bulb == 4){
         // first bulb, so increase intensity
-        strip.setPixelColor((bulb + mode_9_count) % num_bulbs, moving_bright, moving_bright, moving_bright);
+        strip.setPixelColor((bulb + mode_9_count) % num_bulbs, moving_white, moving_white, moving_white);
       }
       else{
         strip.setPixelColor((bulb + mode_9_count) % num_bulbs, white);
 
       }
     }
-    if(moving_bright >= 250 - bright_increase){
+    if(moving_white >= 250 - bright_increase){
       mode_9_count = (mode_9_count + 1) % num_bulbs;
     }
-    moving_bright = (moving_bright + bright_increase) % 250;
+    moving_white = (moving_white + bright_increase) % 250;
   }
-  if(mode == 10){
-    butterfly(0, 255, 0);
-  }
-  if(mode == 11){
-    multi_butter(8, 255, 0, 0);
-    multi_butter(0, 0, 255, 0);
-    multi_butter(16, 0, 0, 255);
-  }
-  if(mode == 12){
-    all_butter(8, 255, 0, 0);
-    all_butter(0, 0, 255, 0);
-    all_butter(16, 0, 0, 255);
-  }
-  if(mode == 13){
+  if(mode == 1){
     if(but_done){
       but_done = false;
       but_count = (but_count + 1) % 3;
     }
     switch(but_count){
     case 0:
-      multi_butter(8, 255, 0, 0);
+      multi_butter(8, 0, 0, 255);
       break;
     case 1:
-      multi_butter(0, 0, 255, 0);
+      multi_butter(0, 0, 0, 255);
       break;
     case 2:
-      multi_butter(16, 0, 0, 255);
+      multi_butter(16, 0, 255, 0);
       break;
     }
-    //strip.setPixelColor(0, 0, 0, 100);
-    //addToColor(& strip, 0, 0, 0, 200);
-  }
-  if(mode == 14){
-    strip.setPixelColor(0, red);
-    strip.setPixelColor(num_bulbs / 3, green);
-    strip.setPixelColor(num_bulbs * 2 / 3, blue);
   }
   strip.show();
   prev_touch = touch;
@@ -416,6 +323,8 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
 
 
 
