@@ -23,9 +23,9 @@ typedef struct rgb Rgb;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_bulbs, PIN, NEO_GRB + NEO_KHZ800);
 CapacitiveSensor   cs_4_8 = CapacitiveSensor(4,8);        // 10M resistor between pins 4 & 8, pin 8 is sensor pin, add a wire and or foil
 uint16_t j;
-int mode = 14;
+int mode = 15;
 int prev_touch = 0;
-int num_modes = 15;
+int num_modes = 16;
 //bright_mult is from 0 to 255
 int bright_mult = 0;
 uint32_t cyan = strip.Color(0, 255, 255);
@@ -44,13 +44,13 @@ boolean but_done = false;
 int yellow_bulbs[yellow_bulb_rows][yellow_bulb_cols] = 
 {
   {
-    22, 23, 0, 1, 2                                          }
+    22, 23, 0, 1, 2                                                            }
   ,
   {
-    6, 7, 8, 9, 10                                        }
+    6, 7, 8, 9, 10                                                          }
   ,
   {
-    14, 15, 16, 17, 18                                        }
+    14, 15, 16, 17, 18                                                          }
 };
 int bulb_row = 0;
 //bat_indicator 0 = empty, 239 = full
@@ -63,6 +63,19 @@ int loop_num = 0;
 //for mode 7
 int16_t half_light_counter = 0;
 uint8_t moving_bright = 0;
+//for mode 14
+boolean wiggle_clock_1 = true;
+#define wiggle_1 0
+#define wiggle_2 num_bulbs / 3
+#define wiggle_3 num_bulbs * 2 / 3
+int16_t wiggle_counter_1 = wiggle_1;
+boolean wiggle_clock_2 = true;
+int16_t wiggle_counter_2 = wiggle_2;
+boolean wiggle_clock_3 = true;
+int16_t wiggle_counter_3 = wiggle_3;
+uint16_t wiggle_bright_1 = 0;
+uint16_t wiggle_bright_2 = 0;
+uint16_t wiggle_bright_3 = 0;
 
 void setup() {
   cs_4_8.set_CS_AutocaL_Millis(0xFFFFFFFF);     // turn off autocalibrate on channel 1 - just as an example
@@ -212,7 +225,7 @@ void loop() {
     }
     switch(but_count){
     case 0:
-      multi_butter(8, 255, 0, 0);
+      multi_butter(8, 0, 0, 255);
       break;
     case 1:
       multi_butter(0, 0, 255, 0);
@@ -225,13 +238,62 @@ void loop() {
     //addToColor(& strip, 0, 0, 0, 200);
   }
   if(mode == 14){
-    strip.setPixelColor(0, red);
-    strip.setPixelColor(num_bulbs / 3, green);
-    strip.setPixelColor(num_bulbs * 2 / 3, blue);
+    wiggle(7, wiggle_1 + 2, wiggle_1 - 2, 255, 0, 0, &wiggle_counter_1, & wiggle_clock_1, &wiggle_bright_1);
+    wiggle(7, wiggle_2 + 2, wiggle_2 - 2, 0, 255, 0, &wiggle_counter_2, & wiggle_clock_2, &wiggle_bright_2);
+    wiggle(7, wiggle_3 + 2, wiggle_3 - 2, 0, 0, 255, &wiggle_counter_3, & wiggle_clock_3, &wiggle_bright_3);
+  }
+  if(mode == 15){
+    wiggle(7, wiggle_1 + 2, wiggle_1 - 2, 0, 255, 0, &wiggle_counter_1, & wiggle_clock_1, &wiggle_bright_1);
+    uint8_t pulse_bright = abs(bright_mult-100)+20;
+
+    uint8_t scale_red = pulse_bright*255/255;
+    uint8_t scale_green = pulse_bright*255/255;
+    uint8_t scale_blue = 0;
+    for(int bulb = 7; bulb < 10; bulb++){
+      strip.setPixelColor(bulb, scale_red, scale_green, scale_blue);
+    }
+    bright_mult = (bright_mult + 1) % 250;
   }
   strip.show();
   prev_touch = touch;
   loop_num= loop_num + 1 %1000;
+}
+
+void wiggle(uint8_t bright_increase, int16_t max_bulb, int16_t min_bulb, uint8_t red, uint8_t green, uint8_t blue, int16_t * wiggle_count, boolean * wiggle_clock, uint16_t * wiggle_bright){
+  //strip.setPixelColor(0, red);
+  //strip.setPixelColor(num_bulbs / 3, green);
+  //strip.setPixelColor(num_bulbs * 2 / 3, blue);
+  int16_t wiggle_count_val = *wiggle_count;
+  //uint8_t bright_increase = 7;
+
+  uint8_t decreased_white = 249 - *wiggle_bright;
+  uint8_t positive_wiggle = wiggle_count_val > 0 ? wiggle_count_val : (wiggle_count_val + num_bulbs);
+  uint8_t darkening_bulb = positive_wiggle % num_bulbs;
+  uint8_t brightening_bulb = ((*wiggle_clock?1:-1) + positive_wiggle) % num_bulbs;
+  uint8_t scale_red = *wiggle_bright*red/255;
+  uint8_t scale_green = *wiggle_bright*green/255;
+  uint8_t scale_blue = *wiggle_bright*blue/255;
+  uint8_t max_color = 255;
+  //gets darker
+  strip.setPixelColor(darkening_bulb, red - scale_red, green - scale_green, blue - scale_blue);
+  // first bulb, so increase intensity
+  strip.setPixelColor(brightening_bulb, scale_red, scale_green, scale_blue);
+
+  if(*wiggle_bright >= 250 - bright_increase){
+    if(*wiggle_clock){
+      *wiggle_count = (wiggle_count_val + 1);
+    }
+    else{
+      *wiggle_count = (wiggle_count_val - 1);
+    }
+    if(*wiggle_count >= max_bulb ){
+      *wiggle_clock = false;
+    }
+    if(*wiggle_count <= min_bulb){
+      *wiggle_clock = true;
+    }
+  }
+  *wiggle_bright = (*wiggle_bright + bright_increase) % 250;
 }
 
 void butterfly(uint8_t red, uint8_t green, uint8_t blue){
@@ -416,6 +478,15 @@ uint32_t Wheel(byte WheelPos) {
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -75,24 +75,24 @@ void setup() {
 
 void loop() {
   long start = millis();
-  long total3 =  cs_4_8.capacitiveSensor(3);
-  int touch_thresh = 50;
-  int plug_in_thresh = 300;
+  //long total3 =  cs_4_8.capacitiveSensor(3);
+  //int touch_thresh = 50;
+  //int plug_in_thresh = 300;
 
-  Serial.print(millis() - start);        // check on performance in milliseconds
-  Serial.print("\t");                    // tab character for debug windown spacing
+  //Serial.print(millis() - start);        // check on performance in milliseconds
+  //Serial.print("\t");                    // tab character for debug windown spacing
 
-  Serial.println(total3);                // print sensor output 3
+  //Serial.println(total3);                // print sensor output 3
 
     delay(5);                             // arbitrary delay to limit data to serial port 
-  int touch = total3 > touch_thresh;
-  if(total3 > plug_in_thresh){
+  //int touch = total3 > touch_thresh;
+  //if(total3 > plug_in_thresh){
     mode = 1;
-  }
-  else{
-    mode = 0;
+  //}
+  //else{
+  //  mode = 0;
 
-  }
+  //}
   strip.setBrightness(255);
   setOneColor(no_color);
   if(mode == 0){
@@ -129,15 +129,15 @@ void loop() {
       multi_butter(8, 0, 0, 255);
       break;
     case 1:
-      multi_butter(0, 0, 0, 255);
+      multi_butter(0, 0, 255, 0);
       break;
     case 2:
-      multi_butter(16, 0, 255, 0);
+      multi_butter(16, 0, 0, 255);
       break;
     }
   }
   strip.show();
-  prev_touch = touch;
+  //prev_touch = touch;
   loop_num= loop_num + 1 %1000;
 }
 
